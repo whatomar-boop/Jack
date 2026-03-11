@@ -50,7 +50,7 @@
             border-radius: 15px;
         }
 
-        /* حقل إدخال الرابط (اختياري - يمكنك إخفاؤه إذا تريد) */
+        /* حقل إدخال الرابط */
         .url-section {
             margin-bottom: 2rem;
             background: #111;
@@ -135,7 +135,7 @@
             font-weight: 600;
         }
 
-        /* أزرار التحكم المخصصة (بجانب مشغل Plyr) */
+        /* أزرار التحكم المخصصة */
         .custom-controls {
             display: flex;
             justify-content: center;
@@ -169,7 +169,7 @@
             font-size: 1.2rem;
         }
 
-        /* قائمة الروابط السريعة (اختياري) */
+        /* قائمة الروابط السريعة */
         .quick-links {
             margin-top: 2rem;
             background: #111;
@@ -222,7 +222,7 @@
     <div class="player-container">
         <h2>🎵 مشغل الصوت المتطور</h2>
         
-        <!-- قسم إدخال الرابط (يمكنك إخفاؤه إذا تريد) -->
+        <!-- قسم إدخال الرابط -->
         <div class="url-section">
             <div class="url-label">رابط الصوت / البث المباشر</div>
             <div class="url-input-group">
@@ -231,7 +231,7 @@
             </div>
         </div>
 
-        <!-- عنصر الصوت الذي سيتحول إلى مشغل Plyr -->
+        <!-- عنصر الصوت -->
         <audio id="audioPlayer" controls crossorigin="anonymous">
             <source src="http://anisfm.ddns.net" type="audio/mpeg">
             متصفحك لا يدعم مشغل الصوت.
@@ -243,7 +243,7 @@
             <span class="live-badge" id="liveBadge">🔴 مباشر</span>
         </div>
 
-        <!-- أزرار تحكم إضافية (تأخير الصوت) -->
+        <!-- أزرار تحكم إضافية -->
         <div class="custom-controls">
             <button class="control-btn" id="delay1Btn">
                 <span>⏪</span>
@@ -267,7 +267,7 @@
             </button>
         </div>
 
-        <!-- قائمة روابط سريعة (جربها) -->
+        <!-- قائمة روابط سريعة -->
         <div class="quick-links">
             <div class="quick-title">📻 روابط تجريبية (بث مباشر)</div>
             <div class="links-grid">
@@ -279,10 +279,10 @@
         </div>
     </div>
 
-    <!-- تحميل المكتبات -->
+    <!-- تحميل المكتبات - تم تصحيح رابط HLS.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdn.plyr.io/3.6.12/plyr.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.12/dist/hls.min.js"></script>
 
     <script>
         (function() {
@@ -309,72 +309,85 @@
 
             // دالة تهيئة مشغل Plyr
             function initPlayer(sourceUrl) {
-                // تحديث المصدر في عنصر audio
-                audioElement.src = sourceUrl;
-                audioElement.load();
-                
-                // إذا كان هناك مشغل سابق، قم بتدميره
-                if (player) {
-                    player.destroy();
-                }
-                
-                // تهيئة مشغل Plyr جديد
-                player = new Plyr(audioElement, {
-                    controls: ['play', 'progress', 'current-time', 'duration', 'mute', 'volume', 'settings'],
-                    settings: ['speed'],
-                    i18n: {
-                        speed: 'السرعة',
-                        normal: 'عادي'
-                    }
-                });
-
-                // دعم HLS (البث المباشر)
-                if (Hls.isSupported() && sourceUrl.includes('.m3u8')) {
-                    hls = new Hls();
-                    hls.loadSource(sourceUrl);
-                    hls.attachMedia(audioElement);
-                    hls.on(Hls.Events.MANIFEST_PARSED, function() {
-                        audioElement.play();
-                    });
-                    
-                    // تحديث واجهة البث المباشر
-                    liveBadge.style.display = 'inline-block';
-                    stationName.textContent = 'بث مباشر HLS';
-                } else {
-                    // ملف عادي
-                    liveBadge.style.display = sourceUrl.includes('.m3u8') ? 'inline-block' : 'none';
-                    stationName.textContent = sourceUrl.split('/').pop() || 'ملف صوتي';
-                }
-
-                // تحديث اسم المحطة من الرابط
                 try {
-                    const urlObj = new URL(sourceUrl);
-                    stationName.textContent = urlObj.hostname || 'مصدر صوتي';
-                } catch(e) {
-                    // إذا لم يكن الرابط صالحاً، استخدم النص الأصلي
+                    // تحديث المصدر في عنصر audio
+                    audioElement.src = sourceUrl;
+                    audioElement.load();
+                    
+                    // إذا كان هناك مشغل سابق، قم بتدميره
+                    if (player) {
+                        player.destroy();
+                    }
+                    
+                    // تهيئة مشغل Plyr جديد
+                    player = new Plyr(audioElement, {
+                        controls: ['play', 'progress', 'current-time', 'duration', 'mute', 'volume', 'settings'],
+                        settings: ['speed'],
+                        i18n: {
+                            speed: 'السرعة',
+                            normal: 'عادي'
+                        }
+                    });
+
+                    // دعم HLS (البث المباشر)
+                    if (sourceUrl.includes('.m3u8')) {
+                        liveBadge.style.display = 'inline-block';
+                        liveBadge.textContent = '🔴 مباشر HLS';
+                        
+                        // استخدام HLS.js إذا كان متاحاً
+                        if (typeof Hls !== 'undefined' && Hls.isSupported()) {
+                            if (hls) {
+                                hls.destroy();
+                            }
+                            hls = new Hls();
+                            hls.loadSource(sourceUrl);
+                            hls.attachMedia(audioElement);
+                            hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                                audioElement.play().catch(e => console.log('التشغيل التلقائي محظور'));
+                            });
+                        } else if (audioElement.canPlayType('application/vnd.apple.mpegurl')) {
+                            // دعم Safari الأصلي
+                            audioElement.src = sourceUrl;
+                        }
+                    } else {
+                        liveBadge.style.display = 'inline-block';
+                        liveBadge.textContent = '🔴 مباشر';
+                    }
+
+                    // تحديث اسم المحطة من الرابط
+                    try {
+                        const urlObj = new URL(sourceUrl);
+                        stationName.textContent = urlObj.hostname || 'مصدر صوتي';
+                    } catch(e) {
+                        stationName.textContent = sourceUrl.split('/').pop() || 'ملف صوتي';
+                    }
+
+                    // حدث عند التشغيل
+                    player.on('playing', () => {
+                        liveBadge.textContent = '🔴 مباشر';
+                    });
+
+                    // حدث عند التوقف
+                    player.on('pause', () => {
+                        liveBadge.textContent = '⏸ متوقف';
+                    });
+
+                    // حدث عند انتهاء البث (للملفات)
+                    player.on('ended', () => {
+                        liveBadge.textContent = '⏹ انتهى';
+                    });
+
+                } catch(error) {
+                    console.error('خطأ في تهيئة المشغل:', error);
+                    alert('حدث خطأ في تهيئة المشغل. الرجاء التحقق من الرابط.');
                 }
-
-                // حدث عند التشغيل
-                player.on('playing', () => {
-                    liveBadge.textContent = '🔴 مباشر';
-                });
-
-                // حدث عند التوقف
-                player.on('pause', () => {
-                    liveBadge.textContent = '⏸ متوقف';
-                });
-
-                // حدث عند انتهاء البث (للملفات)
-                player.on('ended', () => {
-                    liveBadge.textContent = '⏹ انتهى';
-                });
             }
 
-            // دالة تأخير الصوت (الرجوع للخلف)
+            // دالة تأخير الصوت
             function delayAudio(seconds) {
                 if (player && audioElement) {
                     const currentTime = audioElement.currentTime;
-                    if (currentTime > 0) {
+                    if (currentTime > 0 && !isNaN(currentTime)) {
                         audioElement.currentTime = Math.max(0, currentTime - seconds);
                     }
                 }
@@ -382,7 +395,7 @@
 
             // دالة إعادة الاتصال
             function reconnect() {
-                const currentSrc = audioElement.src;
+                const currentSrc = audioUrlInput.value.trim() || audioElement.src;
                 if (currentSrc) {
                     initPlayer(currentSrc);
                 }
@@ -393,6 +406,8 @@
                 const url = audioUrlInput.value.trim();
                 if (url) {
                     initPlayer(url);
+                } else {
+                    alert('الرجاء إدخال رابط');
                 }
             });
 
@@ -414,7 +429,7 @@
                 });
             });
 
-            // تهيئة المشغل تلقائياً مع الرابط الافتراضي
+            // تهيئة المشغل تلقائياً
             window.addEventListener('load', () => {
                 setTimeout(() => {
                     initPlayer('http://anisfm.ddns.net');
