@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ماكس بلاير - تحكم بتأخير الصوت</title>
+    <title>مشغل الصوت المتطور - Plyr</title>
+    <!-- مكتبة Plyr للصوت والفيديو -->
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.6.12/plyr.css" />
     <style>
         * {
             margin: 0;
@@ -21,615 +23,403 @@
             padding: 1rem;
         }
 
-        .max-player {
+        .player-container {
             width: 100%;
             max-width: 600px;
             background: #000000;
-            border-radius: 24px;
+            border-radius: 30px;
             padding: 2rem;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05);
-            border: 1px solid #222;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+            border: 1px solid #333;
         }
 
-        /* المنطقة البصرية */
-        .visualizer {
-            background: #0a0a0a;
-            border-radius: 40px;
-            height: 120px;
-            margin-bottom: 1.5rem;
+        h2 {
+            color: #fff;
+            margin-bottom: 2rem;
+            text-align: center;
+            font-size: 1.8rem;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo img {
+            max-width: 150px;
+            border-radius: 15px;
+        }
+
+        /* حقل إدخال الرابط (اختياري - يمكنك إخفاؤه إذا تريد) */
+        .url-section {
+            margin-bottom: 2rem;
+            background: #111;
+            padding: 1.5rem;
+            border-radius: 20px;
+            border: 1px solid #333;
+        }
+
+        .url-label {
+            color: #aaa;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .url-input-group {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid #222;
-            background-image: radial-gradient(circle at 25% 30%, #1a1a1a 0%, #000 100%);
-            box-shadow: inset 0 0 30px rgba(0,0,0,0.8);
-            position: relative;
-            overflow: hidden;
+            gap: 10px;
         }
 
-        .visualizer-icon {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            z-index: 2;
+        #audioUrl {
+            flex: 1;
+            background: #222;
+            border: 1px solid #444;
+            border-radius: 30px;
+            padding: 12px 20px;
+            color: #fff;
+            font-size: 0.95rem;
+            outline: none;
+            direction: ltr;
         }
 
-        .visualizer-icon span {
-            width: 6px;
-            height: 40px;
-            background: #444;
-            border-radius: 10px;
-            animation: wave 1.2s infinite ease-in-out;
+        #loadBtn {
+            background: #00a7ad;
+            border: none;
+            border-radius: 30px;
+            padding: 0 25px;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 1px solid #0bc5cc;
         }
 
-        .visualizer-icon span:nth-child(1) { animation-delay: 0s; background: #666; }
-        .visualizer-icon span:nth-child(2) { animation-delay: 0.2s; background: #888; }
-        .visualizer-icon span:nth-child(3) { animation-delay: 0.4s; background: #aaa; }
-        .visualizer-icon span:nth-child(4) { animation-delay: 0.3s; background: #888; }
-        .visualizer-icon span:nth-child(5) { animation-delay: 0.1s; background: #666; }
-        .visualizer-icon span:nth-child(6) { animation-delay: 0.5s; background: #777; }
-        .visualizer-icon span:nth-child(7) { animation-delay: 0.15s; background: #999; }
-
-        @keyframes wave {
-            0%, 100% { height: 25px; }
-            50% { height: 55px; }
+        #loadBtn:hover {
+            background: #0bc5cc;
+            transform: scale(1.02);
         }
 
-        .current-time-large {
-            position: absolute;
-            bottom: 15px;
-            right: 25px;
-            font-family: 'Courier New', monospace;
-            font-size: 2.2rem;
-            font-weight: 700;
-            color: rgba(255,255,255,0.2);
-            letter-spacing: 3px;
-        }
-
-        /* الوقت وشريط التقدم */
-        .time-container {
+        /* معلومات البث */
+        .stream-info {
+            background: #111;
+            border-radius: 15px;
+            padding: 1rem;
+            margin: 1rem 0;
+            border: 1px solid #333;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 0.8rem;
-            color: #aaa;
-            font-size: 0.95rem;
-            font-weight: 500;
         }
 
-        .time-current, .time-total {
-            background: #111;
-            padding: 8px 18px;
-            border-radius: 40px;
-            border: 1px solid #333;
-            font-family: 'Courier New', monospace;
-            font-size: 1.1rem;
-            color: #ddd;
-        }
-
-        .progress-container {
-            margin-bottom: 2rem;
-        }
-
-        #progressBar {
-            width: 100%;
-            height: 8px;
-            -webkit-appearance: none;
-            appearance: none;
-            background: #222;
-            border-radius: 20px;
-            outline: none;
-            cursor: pointer;
-        }
-
-        #progressBar::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 22px;
-            height: 22px;
-            background: #fff;
-            border-radius: 50%;
-            box-shadow: 0 0 20px rgba(255,255,255,0.8);
-            border: 2px solid #000;
-            transition: transform 0.1s;
-        }
-
-        #progressBar::-webkit-slider-thumb:hover {
-            transform: scale(1.2);
-        }
-
-        /* أزرار التحكم بالتأخير فقط */
-        .delay-control {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 20px;
-            margin-bottom: 2rem;
-            flex-wrap: wrap;
-        }
-
-        .delay-title {
-            color: #888;
-            font-size: 0.9rem;
-            font-weight: 600;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            background: #111;
+        .live-badge {
+            background: #f00;
+            color: #fff;
             padding: 5px 15px;
             border-radius: 30px;
-            border: 1px solid #333;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            animation: pulse 1.5s infinite;
         }
 
-        .delay-buttons {
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        .station-name {
+            color: #00a7ad;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        /* أزرار التحكم المخصصة (بجانب مشغل Plyr) */
+        .custom-controls {
             display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
             justify-content: center;
+            gap: 15px;
+            margin-top: 2rem;
+            flex-wrap: wrap;
         }
 
-        .delay-btn {
+        .control-btn {
             background: #111;
             border: 1px solid #444;
             color: #fff;
-            width: 70px;
-            height: 70px;
+            width: 60px;
+            height: 60px;
             border-radius: 50%;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: all 0.2s;
-            font-weight: 600;
+            transition: 0.2s;
+            font-size: 0.8rem;
         }
 
-        .delay-btn:hover {
-            background: #1a1a1a;
-            border-color: #888;
+        .control-btn:hover {
+            border-color: #00a7ad;
             transform: scale(1.1);
-            box-shadow: 0 0 25px rgba(255,255,255,0.2);
         }
 
-        .delay-btn:active {
-            transform: scale(0.95);
+        .control-btn span {
+            font-size: 1.2rem;
         }
 
-        .delay-icon {
-            font-size: 1.6rem;
-            line-height: 1;
-        }
-
-        .delay-text {
-            font-size: 0.9rem;
-            color: #fff;
-            margin-top: 2px;
-        }
-
-        .delay-value {
-            font-size: 0.7rem;
-            color: #aaa;
-        }
-
-        .delay-input-container {
-            display: flex;
-            align-items: center;
+        /* قائمة الروابط السريعة (اختياري) */
+        .quick-links {
+            margin-top: 2rem;
             background: #111;
-            border: 1px solid #444;
-            border-radius: 50px;
-            padding: 5px 10px 5px 20px;
-            min-width: 220px;
-        }
-
-        #delayInput {
-            width: 80px;
-            background: transparent;
-            border: none;
-            color: #fff;
-            font-size: 1.4rem;
-            font-family: 'Courier New', monospace;
-            text-align: center;
-            outline: none;
-            padding: 10px 0;
-        }
-
-        .delay-input-container span {
-            color: #888;
-            font-size: 1rem;
-            margin: 0 5px;
-        }
-
-        #applyDelayBtn {
-            background: #222;
-            border: none;
-            border-radius: 40px;
-            padding: 10px 22px;
-            color: #fff;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: 1px solid #555;
-            font-weight: 600;
-        }
-
-        #applyDelayBtn:hover {
-            background: #333;
-            border-color: #888;
-            box-shadow: 0 0 15px rgba(255,255,255,0.2);
-        }
-
-        /* زر التحكم الرئيسي */
-        .control-center {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-bottom: 2rem;
-        }
-
-        #playPauseBtn {
-            background: #111;
-            border: 2px solid #444;
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 15px 30px rgba(0,0,0,0.8);
-        }
-
-        #playPauseBtn:hover {
-            border-color: #aaa;
-            transform: scale(1.1);
-            background: #1a1a1a;
-            box-shadow: 0 0 30px rgba(255,255,255,0.1);
-        }
-
-        #playPauseBtn:active {
-            transform: scale(0.95);
-        }
-
-        .play-icon, .pause-icon {
-            font-size: 3rem;
-            line-height: 1;
-        }
-
-        .pause-icon {
-            font-size: 2.8rem;
-        }
-
-        /* التحكم بالصوت */
-        .volume-section {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            background: #111;
-            padding: 15px 25px;
-            border-radius: 60px;
+            border-radius: 20px;
+            padding: 1.5rem;
             border: 1px solid #333;
         }
 
-        .volume-icon {
-            color: #888;
-            font-size: 1.3rem;
-        }
-
-        #volumeSlider {
-            flex: 1;
-            height: 6px;
-            -webkit-appearance: none;
-            appearance: none;
-            background: #333;
-            border-radius: 10px;
-            outline: none;
-        }
-
-        #volumeSlider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 18px;
-            height: 18px;
-            background: #fff;
-            border-radius: 50%;
-            cursor: pointer;
-        }
-
-        #volumeValue {
+        .quick-title {
             color: #aaa;
-            font-size: 1rem;
-            font-weight: 600;
-            min-width: 50px;
-            text-align: right;
-            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
         }
 
+        .links-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+        }
+
+        .link-item {
+            background: #222;
+            border: 1px solid #444;
+            border-radius: 30px;
+            padding: 8px 12px;
+            color: #ddd;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: 0.2s;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .link-item:hover {
+            background: #333;
+            border-color: #00a7ad;
+            color: #fff;
+        }
+
+        /* إخفاء عناصر الصوت الافتراضية */
         audio {
-            display: none;
+            width: 100%;
+            margin: 1rem 0;
         }
     </style>
 </head>
 <body>
-    <div class="max-player">
-        <!-- مشغل الصوت المخفي -->
-        <audio id="audioPlayer" preload="metadata"></audio>
-
-        <!-- المنطقة البصرية مع عرض الوقت الكبير -->
-        <div class="visualizer">
-            <div class="visualizer-icon">
-                <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
-            </div>
-            <div class="current-time-large" id="largeTimeDisplay">00:00</div>
-        </div>
-
-        <!-- الوقت التفصيلي -->
-        <div class="time-container">
-            <span class="time-current" id="currentTime">00:00</span>
-            <span class="time-total" id="duration">00:00</span>
-        </div>
+    <div class="player-container">
+        <h2>🎵 مشغل الصوت المتطور</h2>
         
-        <!-- شريط التقدم (Time Shift) -->
-        <div class="progress-container">
-            <input type="range" id="progressBar" value="0" step="0.1">
-        </div>
-
-        <!-- قسم التأخير - تحكم دقيق بالمدة الزمنية -->
-        <div class="delay-control">
-            <div class="delay-title">⏪ تأخير الصوت</div>
-            <div class="delay-buttons">
-                <button class="delay-btn" id="delay1Btn">
-                    <span class="delay-icon">⏪</span>
-                    <span class="delay-text">1</span>
-                    <span class="delay-value">ثانية</span>
-                </button>
-                
-                <button class="delay-btn" id="delay3Btn">
-                    <span class="delay-icon">⏪</span>
-                    <span class="delay-text">3</span>
-                    <span class="delay-value">ثواني</span>
-                </button>
-                
-                <button class="delay-btn" id="delay5Btn">
-                    <span class="delay-icon">⏪</span>
-                    <span class="delay-text">5</span>
-                    <span class="delay-value">ثواني</span>
-                </button>
-                
-                <button class="delay-btn" id="delay10Btn">
-                    <span class="delay-icon">⏪</span>
-                    <span class="delay-text">10</span>
-                    <span class="delay-value">ثواني</span>
-                </button>
-            </div>
-            
-            <div class="delay-input-container">
-                <input type="number" id="delayInput" min="0" value="2" step="0.5">
-                <span>ث</span>
-                <button id="applyDelayBtn">تأخير</button>
+        <!-- قسم إدخال الرابط (يمكنك إخفاؤه إذا تريد) -->
+        <div class="url-section">
+            <div class="url-label">رابط الصوت / البث المباشر</div>
+            <div class="url-input-group">
+                <input type="url" id="audioUrl" placeholder="https://example.com/audio.mp3 أو رابط m3u8" value="http://anisfm.ddns.net">
+                <button id="loadBtn">تحميل</button>
             </div>
         </div>
 
-        <!-- زر التحكم الرئيسي (تشغيل/إيقاف) -->
-        <div class="control-center">
-            <button id="playPauseBtn">
-                <span id="playPauseIcon" class="play-icon">▶</span>
+        <!-- عنصر الصوت الذي سيتحول إلى مشغل Plyr -->
+        <audio id="audioPlayer" controls crossorigin="anonymous">
+            <source src="http://anisfm.ddns.net" type="audio/mpeg">
+            متصفحك لا يدعم مشغل الصوت.
+        </audio>
+
+        <!-- معلومات البث المباشر -->
+        <div class="stream-info" id="streamInfo">
+            <span class="station-name" id="stationName">anisfm.ddns.net</span>
+            <span class="live-badge" id="liveBadge">🔴 مباشر</span>
+        </div>
+
+        <!-- أزرار تحكم إضافية (تأخير الصوت) -->
+        <div class="custom-controls">
+            <button class="control-btn" id="delay1Btn">
+                <span>⏪</span>
+                <span>1ث</span>
+            </button>
+            <button class="control-btn" id="delay3Btn">
+                <span>⏪</span>
+                <span>3ث</span>
+            </button>
+            <button class="control-btn" id="delay5Btn">
+                <span>⏪</span>
+                <span>5ث</span>
+            </button>
+            <button class="control-btn" id="delay10Btn">
+                <span>⏪</span>
+                <span>10ث</span>
+            </button>
+            <button class="control-btn" id="reconnectBtn">
+                <span>🔄</span>
+                <span>إعادة</span>
             </button>
         </div>
 
-        <!-- التحكم بالصوت -->
-        <div class="volume-section">
-            <span class="volume-icon">🔊</span>
-            <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.7">
-            <span id="volumeValue">70%</span>
+        <!-- قائمة روابط سريعة (جربها) -->
+        <div class="quick-links">
+            <div class="quick-title">📻 روابط تجريبية (بث مباشر)</div>
+            <div class="links-grid">
+                <div class="link-item" data-url="http://anisfm.ddns.net">راديو أنس</div>
+                <div class="link-item" data-url="http://icecast.omroep.nl/radio1-bb-mp3">NPO Radio 1</div>
+                <div class="link-item" data-url="http://stream.live.vc.bbcmedia.co.uk/bbc_world_service">BBC World</div>
+                <div class="link-item" data-url="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3">موسيقى تجريبية</div>
+            </div>
         </div>
     </div>
 
+    <!-- تحميل المكتبات -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.plyr.io/3.6.12/plyr.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
     <script>
         (function() {
-            // 🔴 الرابط الصوتي مضمن هنا - غير الرابط إلى ما تريد
-            const AUDIO_URL = 'http://anisfm.ddns.net';
+            // عناصر الصفحة
+            const audioElement = document.getElementById('audioPlayer');
+            const audioUrlInput = document.getElementById('audioUrl');
+            const loadBtn = document.getElementById('loadBtn');
+            const stationName = document.getElementById('stationName');
+            const liveBadge = document.getElementById('liveBadge');
             
-            // العناصر
-            const audio = document.getElementById('audioPlayer');
-            const playPauseBtn = document.getElementById('playPauseBtn');
-            const playPauseIcon = document.getElementById('playPauseIcon');
-            const progressBar = document.getElementById('progressBar');
-            const currentTimeSpan = document.getElementById('currentTime');
-            const durationSpan = document.getElementById('duration');
-            const largeTimeDisplay = document.getElementById('largeTimeDisplay');
-            const volumeSlider = document.getElementById('volumeSlider');
-            const volumeValue = document.getElementById('volumeValue');
-            
-            // أزرار التأخير
+            // أزرار التحكم
             const delay1Btn = document.getElementById('delay1Btn');
             const delay3Btn = document.getElementById('delay3Btn');
             const delay5Btn = document.getElementById('delay5Btn');
             const delay10Btn = document.getElementById('delay10Btn');
-            const delayInput = document.getElementById('delayInput');
-            const applyDelayBtn = document.getElementById('applyDelayBtn');
+            const reconnectBtn = document.getElementById('reconnectBtn');
+            
+            // الروابط السريعة
+            const quickLinks = document.querySelectorAll('.link-item');
 
-            // حالة التشغيل
-            let isPlaying = false;
-            let isSeeking = false;
+            // متغيرات
+            let player = null;
+            let hls = null;
 
-            // دالة تنسيق الوقت
-            function formatTime(seconds) {
-                if (isNaN(seconds) || seconds < 0) return '00:00';
-                const mins = Math.floor(seconds / 60);
-                const secs = Math.floor(seconds % 60);
-                return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-            }
-
-            // تحديث جميع عناصر الوقت
-            function updateTimeDisplay() {
-                const current = audio.currentTime || 0;
-                const formatted = formatTime(current);
-                currentTimeSpan.textContent = formatted;
-                largeTimeDisplay.textContent = formatted;
+            // دالة تهيئة مشغل Plyr
+            function initPlayer(sourceUrl) {
+                // تحديث المصدر في عنصر audio
+                audioElement.src = sourceUrl;
+                audioElement.load();
                 
-                if (!isSeeking) {
-                    progressBar.value = current;
+                // إذا كان هناك مشغل سابق، قم بتدميره
+                if (player) {
+                    player.destroy();
                 }
-            }
+                
+                // تهيئة مشغل Plyr جديد
+                player = new Plyr(audioElement, {
+                    controls: ['play', 'progress', 'current-time', 'duration', 'mute', 'volume', 'settings'],
+                    settings: ['speed'],
+                    i18n: {
+                        speed: 'السرعة',
+                        normal: 'عادي'
+                    }
+                });
 
-            // تحديث أيقونة الزر
-            function updatePlayPauseIcon() {
-                if (isPlaying) {
-                    playPauseIcon.textContent = '⏸';
-                    playPauseIcon.className = 'pause-icon';
+                // دعم HLS (البث المباشر)
+                if (Hls.isSupported() && sourceUrl.includes('.m3u8')) {
+                    hls = new Hls();
+                    hls.loadSource(sourceUrl);
+                    hls.attachMedia(audioElement);
+                    hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                        audioElement.play();
+                    });
+                    
+                    // تحديث واجهة البث المباشر
+                    liveBadge.style.display = 'inline-block';
+                    stationName.textContent = 'بث مباشر HLS';
                 } else {
-                    playPauseIcon.textContent = '▶';
-                    playPauseIcon.className = 'play-icon';
+                    // ملف عادي
+                    liveBadge.style.display = sourceUrl.includes('.m3u8') ? 'inline-block' : 'none';
+                    stationName.textContent = sourceUrl.split('/').pop() || 'ملف صوتي';
                 }
+
+                // تحديث اسم المحطة من الرابط
+                try {
+                    const urlObj = new URL(sourceUrl);
+                    stationName.textContent = urlObj.hostname || 'مصدر صوتي';
+                } catch(e) {
+                    // إذا لم يكن الرابط صالحاً، استخدم النص الأصلي
+                }
+
+                // حدث عند التشغيل
+                player.on('playing', () => {
+                    liveBadge.textContent = '🔴 مباشر';
+                });
+
+                // حدث عند التوقف
+                player.on('pause', () => {
+                    liveBadge.textContent = '⏸ متوقف';
+                });
+
+                // حدث عند انتهاء البث (للملفات)
+                player.on('ended', () => {
+                    liveBadge.textContent = '⏹ انتهى';
+                });
             }
 
-            // دالة لتأخير الصوت (الرجوع للخلف)
+            // دالة تأخير الصوت (الرجوع للخلف)
             function delayAudio(seconds) {
-                if (!audio.duration) return;
-                // التأكد من أن الوقت الجديد لا يقل عن 0
-                let newTime = Math.max(0, audio.currentTime - seconds);
-                audio.currentTime = newTime;
-                updateTimeDisplay();
-                
-                // إظهار رسالة تأكيد صغيرة (تظهر في console)
-                console.log(`تم تأخير الصوت ${seconds} ثواني`);
+                if (player && audioElement) {
+                    const currentTime = audioElement.currentTime;
+                    if (currentTime > 0) {
+                        audioElement.currentTime = Math.max(0, currentTime - seconds);
+                    }
+                }
             }
 
-            // تحميل الصوت من الرابط المحدد داخلياً
-            function loadAudio() {
-                audio.src = AUDIO_URL;
-                audio.load();
-                
-                // إعادة ضبط الواجهة
-                progressBar.value = 0;
-                currentTimeSpan.textContent = '00:00';
-                largeTimeDisplay.textContent = '00:00';
-                durationSpan.textContent = '00:00';
+            // دالة إعادة الاتصال
+            function reconnect() {
+                const currentSrc = audioElement.src;
+                if (currentSrc) {
+                    initPlayer(currentSrc);
+                }
             }
 
-            // تحميل الصوت عند بدء التشغيل
-            loadAudio();
-
-            // زر التشغيل/الإيقاف المؤقت
-            playPauseBtn.addEventListener('click', () => {
-                if (isPlaying) {
-                    audio.pause();
-                    isPlaying = false;
-                } else {
-                    audio.play()
-                        .then(() => {
-                            isPlaying = true;
-                        })
-                        .catch(e => {
-                            alert('لا يمكن التشغيل: ' + e.message);
-                        });
+            // حدث تحميل الرابط
+            loadBtn.addEventListener('click', () => {
+                const url = audioUrlInput.value.trim();
+                if (url) {
+                    initPlayer(url);
                 }
-                updatePlayPauseIcon();
-            });
-
-            // تحديث الوقت أثناء التشغيل
-            audio.addEventListener('timeupdate', () => {
-                updateTimeDisplay();
-            });
-
-            // تحديث المدة الكلية
-            audio.addEventListener('loadedmetadata', () => {
-                durationSpan.textContent = formatTime(audio.duration);
-                progressBar.max = audio.duration || 0;
-                updateTimeDisplay();
-            });
-
-            // عند انتهاء التشغيل
-            audio.addEventListener('ended', () => {
-                isPlaying = false;
-                updatePlayPauseIcon();
-                audio.currentTime = 0;
-                updateTimeDisplay();
-            });
-
-            // أحداث شريط التقدم (Time Shift)
-            progressBar.addEventListener('mousedown', () => {
-                isSeeking = true;
-            });
-
-            progressBar.addEventListener('input', () => {
-                if (audio.duration) {
-                    const formatted = formatTime(progressBar.value);
-                    currentTimeSpan.textContent = formatted;
-                    largeTimeDisplay.textContent = formatted;
-                }
-            });
-
-            progressBar.addEventListener('change', () => {
-                if (audio.duration) {
-                    audio.currentTime = progressBar.value;
-                    updateTimeDisplay();
-                }
-                isSeeking = false;
             });
 
             // أحداث أزرار التأخير
-            delay1Btn.addEventListener('click', () => {
-                if (audio.duration) {
-                    delayAudio(1);
-                }
+            delay1Btn.addEventListener('click', () => delayAudio(1));
+            delay3Btn.addEventListener('click', () => delayAudio(3));
+            delay5Btn.addEventListener('click', () => delayAudio(5));
+            delay10Btn.addEventListener('click', () => delayAudio(10));
+            reconnectBtn.addEventListener('click', reconnect);
+
+            // أحداث الروابط السريعة
+            quickLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    const url = link.getAttribute('data-url');
+                    if (url) {
+                        audioUrlInput.value = url;
+                        initPlayer(url);
+                    }
+                });
             });
 
-            delay3Btn.addEventListener('click', () => {
-                if (audio.duration) {
-                    delayAudio(3);
-                }
+            // تهيئة المشغل تلقائياً مع الرابط الافتراضي
+            window.addEventListener('load', () => {
+                setTimeout(() => {
+                    initPlayer('http://anisfm.ddns.net');
+                }, 500);
             });
-
-            delay5Btn.addEventListener('click', () => {
-                if (audio.duration) {
-                    delayAudio(5);
-                }
-            });
-
-            delay10Btn.addEventListener('click', () => {
-                if (audio.duration) {
-                    delayAudio(10);
-                }
-            });
-
-            // تطبيق تأخير بالمدة المدخلة
-            applyDelayBtn.addEventListener('click', () => {
-                if (!audio.duration) return;
-                
-                const seconds = parseFloat(delayInput.value);
-                if (isNaN(seconds) || seconds < 0) {
-                    alert('الرجاء إدخال رقم صحيح');
-                    return;
-                }
-                
-                delayAudio(seconds);
-            });
-
-            // السماح بتطبيق التأخير بالضغط على Enter
-            delayInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    applyDelayBtn.click();
-                }
-            });
-
-            // التحكم بالصوت
-            volumeSlider.addEventListener('input', () => {
-                audio.volume = volumeSlider.value;
-                volumeValue.textContent = Math.round(volumeSlider.value * 100) + '%';
-            });
-
-            // معالجة الأخطاء
-            audio.addEventListener('error', (e) => {
-                console.error('خطأ في الصوت:', e);
-                alert('تعذر تحميل الملف الصوتي. تحقق من الرابط الداخلي.');
-                isPlaying = false;
-                updatePlayPauseIcon();
-            });
-
-            // تهيئة الصوت
-            volumeSlider.value = audio.volume;
-            volumeValue.textContent = Math.round(audio.volume * 100) + '%';
         })();
     </script>
 </body>
